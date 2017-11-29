@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -8,43 +9,61 @@ namespace Investing
 {
     class Program
     {
-        static string lastdate = "";
+        static bool update = true;
+        static List<string> UI = new List<string>();
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
+            new Task(delegate { LoadData("https://ru.investing.com/currencies/btc-usd"); }).Start();
+            new Task(delegate { LoadData("https://ru.investing.com/currencies/usd-rub"); }).Start();
             while (true)
             {
-                LoadData();
                 System.Threading.Thread.Sleep(5000);
+                if (update == true)
+                {
+                    Console.Clear();
+                    foreach (string x in UI)
+                    {
+                        Console.WriteLine(x);
+                    }
+                    update = false;
+                }
             }
         }
 
-        static void LoadData()
+        static void LoadData(string page)
         {
-            string page = "https://ru.investing.com/currencies/btc-usd";
-            var data = GetResponse(page);
+            int myindex = 0;
+            string lastdate = "";
 
-            string date = data.Result.Substring("time\">", "</span>");
-            string s = data.Result.Substring("last_last", "<");
-            string resume = data.Result.Substring("Резюме</td>", "</td>");
+            string Pair = page.Substring("/");
+            while (Pair.Substring("/") != "")
+            {
+                Pair = Pair.Substring("/");
+            }
 
-            string result = resume.Substring(">");
-            if (result.IndexOf("прод") > 0)
+            Regex time = new Regex(@">\d{2}:\d{2}:\d{2}");
+            Regex pid = new Regex(@"\d{1,3}.\d{3},\d{1,3}");
+            Regex percent = new Regex(@"[\-\+]\d{1,3},\d{1,2}%");
+
+
+            lock (UI)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
+                myindex = UI.Count;
+                UI.Add("");
             }
-            else if (result.IndexOf("пок") > 0)
+
+            while (true)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-            if (date != lastdate)
-            {
-                Console.WriteLine($"[{date}] {s.Substring(">")} {result}");
-                lastdate = date;
+                var data = GetResponse(page);
+                string document = data.Result;
+                string stime = time.Match(document).Value;
+                if (stime != lastdate)
+                {
+                    update = true;
+                    lastdate = stime;
+                    UI[myindex] = $"{lastdate} {Pair} {pid.Match(document).Value} {percent.Match(document).Value}";
+                }
             }
         }
 
