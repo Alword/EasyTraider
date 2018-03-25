@@ -7,63 +7,94 @@ using System.Threading.Tasks;
 
 namespace Investing
 {
+    public class BuisnessData
+    {
+        public string Pair { get; set; }
+        public double Pid { get; set; }
+        public double Percent { get; set; }
+        public DateTime AccessDate { get; set; }
+
+        public int TotalSeconds
+        {
+            get
+            {
+                return (int)Math.Truncate((DateTime.Now - AccessDate).TotalSeconds);
+            }
+        }
+    }
+
     class Program
     {
-        static bool update = true;
-        static List<string> UI = new List<string>();
+        static List<BuisnessData> UI = new List<BuisnessData>();
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-            new Task(delegate { LoadData("https://ru.investing.com/currencies/btc-usd"); }).Start();
-            new Task(delegate { LoadData("https://ru.investing.com/currencies/usd-rub"); }).Start();
+            new System.Threading.Thread((() => { LoadData("https://ru.investing.com/currencies/usd-rub"); })).Start();
+            new System.Threading.Thread((() => { LoadData("https://ru.investing.com/currencies/btc-usd"); })).Start();
+            CBuffer console = new CBuffer(Console.WindowHeight, Console.WindowWidth);
+            Console.CursorVisible = false;
+
             while (true)
             {
-                System.Threading.Thread.Sleep(5000);
-                if (update == true)
+                System.Threading.Thread.Sleep(1000);
+                console.Revert();
+                foreach (BuisnessData x in UI)
                 {
-                    Console.Clear();
-                    foreach (string x in UI)
-                    {
-                        Console.WriteLine(x);
-                    }
-                    update = false;
+                    console.WriteLine($"{x.Pair} | {x.Pid} | {x.Percent} | ({x.TotalSeconds} seconds ago)");
                 }
+                console.WriteLine("[Press SPACE to exit]");
+                console.Revert();
+                console.Refresh();
             }
         }
 
         static void LoadData(string page)
         {
-            int myindex = 0;
-            string lastdate = "";
-
-            string Pair = page.Substring("/");
-            while (Pair.Substring("/") != "")
+            var updateData = new BuisnessData
             {
-                Pair = Pair.Substring("/");
-            }
+                Pair = page.Substring(page.LastIndexOf("/") + 1)
+            };
 
             Regex time = new Regex(@">\d{2}:\d{2}:\d{2}");
             Regex pid = new Regex(@"\d{1,3}.\d{3},\d{1,3}");
             Regex percent = new Regex(@"[\-\+]\d{1,3},\d{1,2}%");
 
-
             lock (UI)
             {
-                myindex = UI.Count;
-                UI.Add("");
+                UI.Add(updateData);
             }
 
             while (true)
             {
                 var data = GetResponse(page);
+                DateTime AccessTime = DateTime.Now;
                 string document = data.Result;
-                string stime = time.Match(document).Value;
-                if (stime != lastdate)
+
+
+                string documentData = time.Match(document).Value;
+                if (documentData != "")
                 {
-                    update = true;
-                    lastdate = stime;
-                    UI[myindex] = $"{lastdate} {Pair} {pid.Match(document).Value} {percent.Match(document).Value}";
+                    AccessTime = Convert.ToDateTime(time.Match(document).Value.Substring(1));
                 }
+                else
+                {
+                    updateData.AccessDate = AccessTime;
+                    if (!updateData.Pair.Contains("[Closed]"))
+                    {
+                        updateData.Pair = $"[Closed] {updateData.Pair}";
+                    }
+                    else
+                    {
+                        System.Threading.Thread.Sleep(new TimeSpan(0, 2, 0));
+                    }
+                }
+                if (AccessTime != updateData.AccessDate)
+                {
+                    updateData.AccessDate = AccessTime;
+                    updateData.Pid = Convert.ToDouble(pid.Match(document).Value.Replace(".", ""));
+                    updateData.Percent = Convert.ToDouble(percent.Match(document).Value.Replace("%", ""));
+                }
+
             }
         }
 
