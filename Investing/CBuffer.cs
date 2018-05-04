@@ -68,8 +68,10 @@ namespace Investing
             column = 0;
         }
 
-        public void Write(string input)
+        public void Write(string input, int format = 0)
         {
+            int padding = format - input.Length;
+
             int i = line;
             int j = column;
 
@@ -77,12 +79,12 @@ namespace Investing
             {
                 newBuffer[i, j] = x;
                 j++;
-                if (j == width)
+                if (j >= width)
                 {
                     i++;
                     j = 0;
                 }
-                if (i == height)
+                if (i >= height)
                 {
                     RowsUp();
                     i--;
@@ -90,7 +92,10 @@ namespace Investing
             }
             line = i;
             column = j;
-
+            if (padding > 0)
+            {
+                column += padding;
+            }
         }
 
         public void Refresh()

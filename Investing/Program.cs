@@ -7,21 +7,7 @@ using System.Threading.Tasks;
 
 namespace Investing
 {
-    public class BuisnessData
-    {
-        public string Pair { get; set; }
-        public double Pid { get; set; }
-        public double Percent { get; set; }
-        public DateTime AccessDate { get; set; }
 
-        public int TotalSeconds
-        {
-            get
-            {
-                return (int)Math.Truncate((DateTime.Now - AccessDate).TotalSeconds);
-            }
-        }
-    }
 
     class Program
     {
@@ -29,8 +15,14 @@ namespace Investing
         static void Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-            new System.Threading.Thread((() => { LoadData("https://ru.investing.com/currencies/usd-rub"); })).Start();
-            new System.Threading.Thread((() => { LoadData("https://ru.investing.com/currencies/btc-usd"); })).Start();
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/usd-rub"); }));
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/btc-usd"); }));
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/eur-usd"); }));
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/eur-rub"); }));
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/gbp-usd"); }));
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/usd-jpy"); }));
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/eur-jpy"); }));
+            Task.Run((() => { LoadData("https://ru.investing.com/currencies/aud-usd"); }));
             CBuffer console = new CBuffer(Console.WindowHeight, Console.WindowWidth);
             Console.CursorVisible = false;
 
@@ -40,7 +32,13 @@ namespace Investing
                 console.Revert();
                 foreach (BuisnessData x in UI)
                 {
-                    console.WriteLine($"{x.Pair} | {x.Pid} | {x.Percent} | ({x.TotalSeconds} seconds ago)");
+                    console.Write($"{x.Pair}", 18); console.Write("|");
+                    console.Write($"{x.Pid}", 10); console.Write("|");
+                    console.Write($"{x.Percent}", 7); console.Write("|");
+                    console.Write($"5 min = {x.Min5}", 24); console.Write("|");
+                    console.Write($"15 min = {x.Min15}", 24); console.Write("|");
+                    console.Write($"({x.TotalSeconds} seconds ago)");
+                    console.WriteLine();
                 }
                 console.WriteLine("[Press SPACE to exit]");
                 console.Revert();
@@ -56,7 +54,7 @@ namespace Investing
             };
 
             Regex time = new Regex(@">\d{2}:\d{2}:\d{2}");
-            Regex pid = new Regex(@"\d{1,3}.\d{3},\d{1,3}");
+            Regex doubleRegex = new Regex(@"[^0-9,]");
             Regex percent = new Regex(@"[\-\+]\d{1,3},\d{1,2}%");
 
             lock (UI)
@@ -91,10 +89,27 @@ namespace Investing
                 if (AccessTime != updateData.AccessDate)
                 {
                     updateData.AccessDate = AccessTime;
-                    updateData.Pid = Convert.ToDouble(pid.Match(document).Value.Replace(".", ""));
-                    updateData.Percent = Convert.ToDouble(percent.Match(document).Value.Replace("%", ""));
-                }
 
+                    string truePid = doubleRegex.Replace(document.Substring("last_last", "/span>").Replace(".", ""), "");
+                    Double.TryParse(truePid, out double doublePid);
+                    updateData.Pid = doublePid;
+
+                    Double.TryParse(percent.Match(document).Value.Replace("%", ""), out double doublePercent);
+                    updateData.Percent = doublePercent;
+
+                    string substring = document.Substring("Резюме</td>", "</tr>");
+                    string[] predictians = Regex.Split(substring, "</td>");
+                    Regex regex = new Regex(@"[^А-я, ]");
+                    for (int i = 0; i < predictians.Length; i++)
+                    {
+                        predictians[i] = regex.Replace(predictians[i], "").TrimStart(' ').TrimEnd(' ');
+                    }
+                    if (predictians.Length > 2)
+                    {
+                        updateData.Min5 = GetSyn(predictians[0]);
+                        updateData.Min15 = GetSyn(predictians[1]);
+                    }
+                }
             }
         }
 
@@ -115,6 +130,33 @@ namespace Investing
             using (var streamReader = new StreamReader(responseStream))
             {
                 return streamReader.ReadToEnd();
+            }
+        }
+
+        public static BuisnessSynopsis GetSyn(string text)
+        {
+            if (text.Contains("Активно"))
+            {
+                if (text.Contains("продавать"))
+                {
+                    return BuisnessSynopsis.ActivelySell;
+                }
+                else
+                {
+                    return BuisnessSynopsis.ActivelyBuy;
+                }
+            }
+            else if (text.Contains("продавать"))
+            {
+                return BuisnessSynopsis.ActivelySell;
+            }
+            else if (text.Contains("покупать"))
+            {
+                return BuisnessSynopsis.ActivelyBuy;
+            }
+            else
+            {
+                return BuisnessSynopsis.Neutral;
             }
         }
     }
