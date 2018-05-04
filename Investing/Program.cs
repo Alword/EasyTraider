@@ -19,10 +19,10 @@ namespace Investing
             Task.Run((() => { LoadData("https://ru.investing.com/currencies/btc-usd"); }));
             Task.Run((() => { LoadData("https://ru.investing.com/currencies/eur-usd"); }));
             Task.Run((() => { LoadData("https://ru.investing.com/currencies/eur-rub"); }));
-            Task.Run((() => { LoadData("https://ru.investing.com/currencies/gbp-usd"); }));
-            Task.Run((() => { LoadData("https://ru.investing.com/currencies/usd-jpy"); }));
-            Task.Run((() => { LoadData("https://ru.investing.com/currencies/eur-jpy"); }));
-            Task.Run((() => { LoadData("https://ru.investing.com/currencies/aud-usd"); }));
+            //Task.Run((() => { LoadData("https://ru.investing.com/currencies/gbp-usd"); }));
+            //Task.Run((() => { LoadData("https://ru.investing.com/currencies/usd-jpy"); }));
+            //Task.Run((() => { LoadData("https://ru.investing.com/currencies/eur-jpy"); }));
+            //Task.Run((() => { LoadData("https://ru.investing.com/currencies/aud-usd"); }));
             CBuffer console = new CBuffer(Console.WindowHeight, Console.WindowWidth);
             Console.CursorVisible = false;
 
@@ -146,13 +146,13 @@ namespace Investing
                     return BuisnessSynopsis.ActivelyBuy;
                 }
             }
-            else if (text.Contains("продавать"))
+            else if (text.Contains("Продавать"))
             {
-                return BuisnessSynopsis.ActivelySell;
+                return BuisnessSynopsis.Sell;
             }
-            else if (text.Contains("покупать"))
+            else if (text.Contains("Покупать"))
             {
-                return BuisnessSynopsis.ActivelyBuy;
+                return BuisnessSynopsis.Buy;
             }
             else
             {
@@ -178,22 +178,3 @@ namespace Investing
         }
     }
 }
-
-//Regex regex = new Regex(@">BTC/USD \w*<");
-//MatchCollection matches = regex.Matches(s);
-//if (matches.Count > 0)
-//{
-//    foreach (Match match in matches)
-//        Console.WriteLine(match.Value);
-//}
-//else
-//{
-//    Console.WriteLine("Совпадений не найдено");
-//}
-//int loading = 0;
-//while (!data.IsCompleted)
-//{
-//    Console.Write($"Загрузка {loading++}");
-//    System.Threading.Thread.Sleep(250);
-//    Console.Clear();
-//}

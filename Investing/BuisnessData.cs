@@ -44,6 +44,9 @@ namespace Investing
         {
             //testOnlu //todo
             new BuisnessTester(this, BuisnessAgression.Agresive, BuisnessSpeed.Min5);
+            new BuisnessTester(this, BuisnessAgression.Conservative, BuisnessSpeed.Min5);
+            new BuisnessTester(this, BuisnessAgression.Agresive, BuisnessSpeed.Min15);
+            new BuisnessTester(this, BuisnessAgression.Conservative, BuisnessSpeed.Min15);
         }
 
         public int TotalSeconds
