@@ -5,13 +5,15 @@ using System.Text;
 using System.Threading.Tasks;
 using OpenQA.Selenium;
 
+using OTradeBot.Edge;
+
 namespace OTradeBot
 {
     class Program
     {
         static void Main(string[] args)
         {
-            TestChrome testchrome = new TestChrome();
+            OTradeEdge testchrome = new OTradeEdge();
             testchrome.Start();
             Environment.Exit(0);
         }
